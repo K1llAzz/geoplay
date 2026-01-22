@@ -237,7 +237,7 @@ def api_categories():
     return {"categories": [r["category"] for r in rows]}
 
 @app.get("/api/videos")
-def api_videos(category: Optional[str] = None) -> List[Dict[str, str]]:
+def api_videos(category: Optional[str] = None):
     conn = db()
     if category and category.strip():
         rows = conn.execute(
@@ -251,7 +251,7 @@ def api_videos(category: Optional[str] = None) -> List[Dict[str, str]]:
     out = []
     for r in rows:
         out.append({
-            "id": r["id"],
+            "id": int(r["id"]),  # ✅ ensure int
             "title": r["title"],
             "category": r["category"],
             "uploader": r["uploader"],
@@ -260,12 +260,12 @@ def api_videos(category: Optional[str] = None) -> List[Dict[str, str]]:
             "filename": r["filename"],
         })
 
-    # fallback if DB is empty (Render Free resets sometimes)
+    # Fallback: if DB empty, scan uploads
     if not out:
         for p in sorted(UPLOAD_DIR.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
             if p.is_file() and p.suffix.lower() in ALLOWED_EXTS:
                 out.append({
-                    "id": 0,
+                    "id": 0,  # ✅ int
                     "title": p.name,
                     "category": "Uncategorized",
                     "uploader": "unknown",
@@ -316,5 +316,6 @@ async def api_upload(
     conn.close()
 
     return {"ok": True, "url": f"/uploads/{save_path.name}", "filename": save_path.name}
+
 
 
