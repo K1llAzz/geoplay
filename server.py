@@ -24,7 +24,8 @@ ALLOWED_EXTS = {".mp4", ".webm", ".ogg"}
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 UPLOAD_DIR = BASE_DIR / "uploads"
-DB_PATH = BASE_DIR / "app.db"
+DB_PATH = Path(os.environ.get("DB_PATH", "/tmp/app.db"))
+
 
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -277,3 +278,4 @@ async def api_upload(
     conn.close()
 
     return {"ok": True, "url": f"/uploads/{save_path.name}", "filename": save_path.name}
+
