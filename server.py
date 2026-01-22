@@ -245,9 +245,7 @@ def api_videos(category: Optional[str] = None) -> List[Dict[str, str]]:
             (category.strip(),),
         ).fetchall()
     else:
-        rows = conn.execute(
-            "SELECT * FROM videos ORDER BY created_at DESC, id DESC"
-        ).fetchall()
+        rows = conn.execute("SELECT * FROM videos ORDER BY created_at DESC, id DESC").fetchall()
     conn.close()
 
     out = []
@@ -261,8 +259,22 @@ def api_videos(category: Optional[str] = None) -> List[Dict[str, str]]:
             "url": f"/uploads/{r['filename']}",
             "filename": r["filename"],
         })
-    return out
 
+    # fallback if DB is empty (Render Free resets sometimes)
+    if not out:
+        for p in sorted(UPLOAD_DIR.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
+            if p.is_file() and p.suffix.lower() in ALLOWED_EXTS:
+                out.append({
+                    "id": 0,
+                    "title": p.name,
+                    "category": "Uncategorized",
+                    "uploader": "unknown",
+                    "created_at": "",
+                    "url": f"/uploads/{p.name}",
+                    "filename": p.name,
+                })
+
+    return out
 @app.post("/api/upload")
 @app.post("/api/upload")
 async def api_upload(
@@ -304,4 +316,5 @@ async def api_upload(
     conn.close()
 
     return {"ok": True, "url": f"/uploads/{save_path.name}", "filename": save_path.name}
+
 
