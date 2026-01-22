@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import os
 import re
+import hmac
+import hashlib
+import secrets
 import shutil
 import sqlite3
 from pathlib import Path
@@ -11,7 +14,6 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request, Res
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from passlib.context import CryptContext
 from itsdangerous import URLSafeSerializer, BadSignature
 
 
@@ -24,22 +26,19 @@ ALLOWED_EXTS = {".mp4", ".webm", ".ogg"}
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 UPLOAD_DIR = BASE_DIR / "uploads"
-DB_PATH = Path(os.environ.get("DB_PATH", "/tmp/app.db"))
-
 
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-# Change this to something random before public launch
-SECRET_KEY = os.environ.get("SECRET_KEY", "CHANGE_ME_TO_SOMETHING_RANDOM_123456")
+# Render Free: /tmp is writable. App folder may not persist.
+DB_PATH = Path(os.environ.get("DB_PATH", "/tmp/geoplay.db"))
+
+SECRET_KEY = os.environ.get("SECRET_KEY", "CHANGE_ME_ON_RENDER_TO_RANDOM_LONG_TEXT")
 SESSION_COOKIE = "geoplay_session"
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 signer = URLSafeSerializer(SECRET_KEY, salt="geoplay-session")
 
-
 app = FastAPI(title=APP_TITLE)
-
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
@@ -59,6 +58,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
+            password_salt TEXT NOT NULL,
             password_hash TEXT NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -77,6 +77,25 @@ def init_db():
     conn.close()
 
 init_db()
+
+
+# -----------------------
+# Password hashing (no external libs)
+# PBKDF2-HMAC-SHA256
+# -----------------------
+def hash_password(password: str, salt_hex: Optional[str] = None) -> tuple[str, str]:
+    if salt_hex is None:
+        salt = secrets.token_bytes(16)
+        salt_hex = salt.hex()
+    else:
+        salt = bytes.fromhex(salt_hex)
+
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 200_000)
+    return salt_hex, dk.hex()
+
+def verify_password(password: str, salt_hex: str, expected_hash_hex: str) -> bool:
+    _, got = hash_password(password, salt_hex=salt_hex)
+    return hmac.compare_digest(got, expected_hash_hex)
 
 
 # -----------------------
@@ -142,7 +161,7 @@ def upload_page():
 
 @app.get("/health")
 def health():
-    return {"ok": True, "app": APP_TITLE}
+    return {"ok": True, "app": APP_TITLE, "db": str(DB_PATH)}
 
 
 # -----------------------
@@ -157,40 +176,47 @@ def api_me(request: Request):
 def api_register(username: str = Form(...), password: str = Form(...)):
     username = username.strip()
     if len(username) < 3:
-        raise HTTPException(400, "Username too short")
+        raise HTTPException(400, "Username too short (min 3)")
     if len(password) < 6:
         raise HTTPException(400, "Password too short (min 6)")
 
-    ph = pwd_context.hash(password)
+    salt_hex, hash_hex = hash_password(password)
+
     conn = db()
     try:
-        conn.execute("INSERT INTO users(username, password_hash) VALUES(?,?)", (username, ph))
+        conn.execute(
+            "INSERT INTO users(username, password_salt, password_hash) VALUES(?,?,?)",
+            (username, salt_hex, hash_hex),
+        )
         conn.commit()
     except sqlite3.IntegrityError:
         raise HTTPException(400, "Username already exists")
     finally:
         conn.close()
+
     return {"ok": True}
 
 @app.post("/api/login")
 def api_login(response: Response, username: str = Form(...), password: str = Form(...)):
     username = username.strip()
     conn = db()
-    row = conn.execute("SELECT password_hash FROM users WHERE username=?", (username,)).fetchone()
+    row = conn.execute(
+        "SELECT password_salt, password_hash FROM users WHERE username=?",
+        (username,),
+    ).fetchone()
     conn.close()
 
-    if not row or not pwd_context.verify(password, row["password_hash"]):
+    if not row or not verify_password(password, row["password_salt"], row["password_hash"]):
         raise HTTPException(401, "Invalid username/password")
 
     token = signer.dumps({"username": username})
-    # httponly cookie
     response.set_cookie(
         key=SESSION_COOKIE,
         value=token,
         httponly=True,
         samesite="lax",
-        secure=False,  # Render uses HTTPS; local is http. If you want strict HTTPS only, set True in production.
-        max_age=60 * 60 * 24 * 14,  # 14 days
+        secure=True,   # Render is HTTPS
+        max_age=60 * 60 * 24 * 14,
     )
     return {"ok": True, "username": username}
 
@@ -208,8 +234,7 @@ def api_categories():
     conn = db()
     rows = conn.execute("SELECT DISTINCT category FROM videos ORDER BY category ASC").fetchall()
     conn.close()
-    cats = [r["category"] for r in rows]
-    return {"categories": cats}
+    return {"categories": [r["category"] for r in rows]}
 
 @app.get("/api/videos")
 def api_videos(category: Optional[str] = None) -> List[Dict[str, str]]:
@@ -278,4 +303,3 @@ async def api_upload(
     conn.close()
 
     return {"ok": True, "url": f"/uploads/{save_path.name}", "filename": save_path.name}
-
