@@ -264,16 +264,17 @@ def api_videos(category: Optional[str] = None) -> List[Dict[str, str]]:
     return out
 
 @app.post("/api/upload")
+@app.post("/api/upload")
 async def api_upload(
     request: Request,
     file: UploadFile = File(...),
-    title: str = Form(...),
-    category: str = Form(...),
+    title: Optional[str] = Form(None),
+    category: Optional[str] = Form(None),
 ):
     uploader = require_user(request)
 
-    title = title.strip() or "Untitled"
-    category = category.strip() or "Uncategorized"
+    title = (title or "").strip() or (file.filename or "Untitled")
+    category = (category or "").strip() or "Uncategorized"
 
     if not file.filename:
         raise HTTPException(400, "No file")
@@ -303,3 +304,4 @@ async def api_upload(
     conn.close()
 
     return {"ok": True, "url": f"/uploads/{save_path.name}", "filename": save_path.name}
+
