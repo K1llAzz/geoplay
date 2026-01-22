@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>GeoPlay — Home</title>
+  <style>
+    body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:#0b0f1a;color:#eaf0ff}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08);position:sticky;top:0;background:rgba(11,15,26,.92);backdrop-filter:blur(10px)}
+    .brand{font-weight:800;letter-spacing:.3px}
+    nav a, nav button{color:#eaf0ff;text-decoration:none;margin-left:10px;background:none;border:none;cursor:pointer;font:inherit}
+    nav a:hover, nav button:hover{opacity:.85}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 18px}
+    select{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#eaf0ff;padding:10px 12px;border-radius:12px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+    .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:18px;overflow:hidden}
+    .card video{width:100%;height:180px;object-fit:cover;background:#000}
+    .meta{padding:12px}
+    .title{font-weight:750}
+    .sub{opacity:.75;font-size:13px;margin-top:4px}
+    .pill{display:inline-block;margin-top:10px;font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);opacity:.9}
+    .right{display:flex;gap:10px;align-items:center}
+    .me{opacity:.8;font-size:13px}
+    .btn{background:rgba(122,167,255,.18);border:1px solid rgba(122,167,255,.28);color:#eaf0ff;border-radius:12px;padding:9px 12px}
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand">GeoPlay</div>
+  <div class="right">
+    <div class="me" id="me">Checking…</div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/upload">Upload</a>
+      <a href="/login" id="loginLink">Login</a>
+      <button id="logoutBtn" style="display:none;">Logout</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="bar">
+    <label>Category:</label>
+    <select id="cat">
+      <option value="">All</option>
+    </select>
+    <button class="btn" id="refresh">Refresh</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div id="empty" style="opacity:.75;margin-top:10px;display:none;">No videos yet.</div>
+</div>
+
+<script>
+  const meEl = document.getElementById("me");
+  const loginLink = document.getElementById("loginLink");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const catSel = document.getElementById("cat");
+  const grid = document.getElementById("grid");
+  const empty = document.getElementById("empty");
+  const refreshBtn = document.getElementById("refresh");
+
+  async function api(path){ const r = await fetch(path); return r.json(); }
+
+  async function loadMe(){
+    const me = await api("/api/me");
+    if(me.logged_in){
+      meEl.textContent = "Logged in: " + me.username;
+      loginLink.style.display = "none";
+      logoutBtn.style.display = "inline";
+    }else{
+      meEl.textContent = "Not logged in";
+      loginLink.style.display = "inline";
+      logoutBtn.style.display = "none";
+    }
+  }
+
+  logoutBtn.onclick = async ()=>{
+    await fetch("/api/logout", {method:"POST"});
+    location.reload();
+  };
+
+  async function loadCategories(){
+    const data = await api("/api/categories");
+    // reset options
+    const keepAll = catSel.value;
+    catSel.innerHTML = `<option value="">All</option>`;
+    (data.categories || []).forEach(c=>{
+      const o = document.createElement("option");
+      o.value = c;
+      o.textContent = c;
+      catSel.appendChild(o);
+    });
+    catSel.value = keepAll || "";
+  }
+
+  function cardHTML(v){
+    const safe = (s)=> String(s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+    return `
+      <div class="card">
+        <video src="${safe(v.url)}" controls preload="metadata"></video>
+        <div class="meta">
+          <div class="title">${safe(v.title)}</div>
+          <div class="sub">By ${safe(v.uploader)} • ${safe(v.created_at)}</div>
+          <div class="pill">${safe(v.category)}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function loadVideos(){
+    const cat = catSel.value;
+    const url = cat ? `/api/videos?category=${encodeURIComponent(cat)}` : "/api/videos";
+    const vids = await api(url);
+
+    grid.innerHTML = "";
+    if(!vids || vids.length === 0){
+      empty.style.display = "block";
+      return;
+    }
+    empty.style.display = "none";
+    vids.forEach(v=>{
+      const d = document.createElement("div");
+      d.innerHTML = cardHTML(v);
+      grid.appendChild(d.firstElementChild);
+    });
+  }
+
+  catSel.onchange = loadVideos;
+  refreshBtn.onclick = async ()=>{
+    await loadCategories();
+    await loadVideos();
+  };
+
+  (async ()=>{
+    await loadMe();
+    await loadCategories();
+    await loadVideos();
+  })();
+</script>
+</body>
+</html>
