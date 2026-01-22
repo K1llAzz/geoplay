@@ -2,3 +2,8 @@ fastapi
 uvicorn[standard]
 python-multipart
 itsdangerous
+git add static/index.html
+
+git commit -m "Update homepage"
+
+git push
