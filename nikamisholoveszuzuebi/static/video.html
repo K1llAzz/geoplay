@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GeoPlay • Watch</title>
+
+  <link rel="icon" href="/static/assets/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/assets/favicon-16.png">
+
+  <style>
+    :root{ --bg:#0b0f1a; --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.12); --text:#eaf0ff; --muted:rgba(234,240,255,.72); --accent:#7aa7ff; --shadow:0 14px 40px rgba(0,0,0,.28); }
+    [data-theme="light"]{ --bg:#f6f7fb; --card:#fff; --line:#e4e7f0; --text:#0b0f1a; --muted:#4b5563; --accent:#2563eb; --shadow:0 16px 38px rgba(0,0,0,.08); }
+    [data-theme="purple"]{ --bg:#0a0416; --card:rgba(255,255,255,.07); --line:rgba(255,255,255,.12); --text:#f2eaff; --muted:rgba(242,234,255,.72); --accent:#b37aff; }
+    [data-theme="green"]{ --bg:#06140f; --card:rgba(255,255,255,.07); --line:rgba(255,255,255,.12); --text:#eafff3; --muted:rgba(234,255,243,.72); --accent:#35d07f; }
+
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto;background:var(--bg);color:var(--text)}
+    a{color:var(--accent);text-decoration:none}
+    .muted{color:var(--muted)}
+    header{
+      position:sticky;top:0;z-index:50;
+      border-bottom:1px solid var(--line);
+      background:color-mix(in srgb,var(--bg) 82%, transparent);
+      backdrop-filter:blur(10px);
+      padding:12px 14px;
+      display:flex;align-items:center;justify-content:space-between;gap:14px;
+    }
+    .brand{display:flex;align-items:center;gap:10px}
+    .brand img{width:34px;height:34px;border-radius:999px;box-shadow:var(--shadow)}
+    .btn, select, input{
+      border:1px solid var(--line);
+      background:var(--card);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:14px;
+      transition:transform .08s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+    }
+    .btn{cursor:pointer}
+    .btn:hover{transform:translateY(-1px)}
+    .btn:active{transform:translateY(0px)}
+    .btn.active{border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%, transparent)}
+    input:focus, select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 22%, transparent)}
+    select{appearance:none;cursor:pointer}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .card{
+      border:1px solid var(--line);
+      background:var(--card);
+      border-radius:22px;
+      padding:16px;
+      box-shadow:var(--shadow);
+    }
+    video{width:100%;max-height:560px;background:#000;border-radius:18px;border:1px solid var(--line)}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+    footer{margin-top:26px;padding:18px;text-align:center;color:var(--muted);border-top:1px solid var(--line)}
+    footer .btn{display:inline-block;margin-left:10px}
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <img src="/static/assets/logo-64.png" alt="GeoPlay">
+    <b><a href="/">GeoPlay</a></b>
+    <span class="muted" id="me">…</span>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <a class="btn" href="/">Home</a>
+    <a class="btn" href="/upload">Upload</a>
+    <a class="btn" href="/login">Login</a>
+    <select id="theme" style="width:auto">
+      <option value="dark">Dark</option>
+      <option value="light">Light</option>
+      <option value="purple">Purple</option>
+      <option value="green">Green</option>
+    </select>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2 style="margin:0" id="title">Loading…</h2>
+    <div class="muted" id="sub" style="margin-top:6px;"></div>
+
+    <div style="margin-top:12px;">
+      <video id="player" controls playsinline></video>
+    </div>
+
+    <div class="row">
+      <button class="btn" id="likeBtn">Like</button>
+      <button class="btn" id="dislikeBtn">Dislike</button>
+      <button class="btn" id="clearBtn">Clear</button>
+      <span class="muted" id="stats"></span>
+    </div>
+
+    <div class="muted" id="msg" style="margin-top:10px;min-height:18px;"></div>
+  </div>
+
+  <div class="card" style="margin-top:14px;">
+    <h3 style="margin:0 0 10px;">Comments</h3>
+    <div class="row">
+      <input id="cText" placeholder="Write a comment…" style="flex:1;">
+      <button class="btn" id="cSend" style="width:auto;">Post</button>
+    </div>
+    <div id="cMsg" class="muted" style="margin-top:8px;min-height:18px;"></div>
+    <div id="cList" style="margin-top:12px;display:flex;flex-direction:column;gap:10px;"></div>
+  </div>
+
+  <footer>
+    Created by <b>ZuZinc</b>
+    <a class="btn" href="mailto:contact@geoplay.tv">Contact</a>
+  </footer>
+</div>
+
+<script>
+  const themeSel = document.getElementById("theme");
+  function setTheme(t){
+    document.documentElement.dataset.theme = (t === "dark" ? "" : t);
+    localStorage.setItem("theme", t);
+  }
+  setTheme(localStorage.getItem("theme") || "dark");
+  themeSel.value = localStorage.getItem("theme") || "dark";
+  themeSel.onchange = ()=> setTheme(themeSel.value);
+
+  const meEl = document.getElementById("me");
+  async function j(url){
+    const r = await fetch(url);
+    const t = await r.text();
+    let d; try{ d=JSON.parse(t);}catch{ d=t; }
+    if(!r.ok) throw new Error(typeof d==="string"?d:(d.detail||t));
+    return d;
+  }
+  (async ()=> {
+    const m = await j("/api/me");
+    meEl.textContent = m.logged_in ? ("@"+m.username) : "guest";
+  })();
+
+  const parts = location.pathname.split("/");
+  const videoId = parts[parts.length-1];
+
+  const title = document.getElementById("title");
+  const sub = document.getElementById("sub");
+  const player = document.getElementById("player");
+  const stats = document.getElementById("stats");
+  const msg = document.getElementById("msg");
+
+  const likeBtn = document.getElementById("likeBtn");
+  const dislikeBtn = document.getElementById("dislikeBtn");
+  const clearBtn = document.getElementById("clearBtn");
+
+  const cText = document.getElementById("cText");
+  const cSend = document.getElementById("cSend");
+  const cMsg  = document.getElementById("cMsg");
+  const cList = document.getElementById("cList");
+
+  function esc(s){return String(s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));}
+
+  function setButtons(my){
+    likeBtn.classList.toggle("active", my === 1);
+    dislikeBtn.classList.toggle("active", my === -1);
+  }
+
+  async function postReact(v){
+    const fd = new FormData();
+    fd.append("value", v);
+    const r = await fetch(`/api/video/${videoId}/react`, {method:"POST", body: fd});
+    const t = await r.text();
+    if(!r.ok) throw new Error(t);
+  }
+
+  async function loadVideo(){
+    const v = await j(`/api/video/${videoId}`);
+    title.textContent = v.title;
+    sub.innerHTML = `by <a href="/u/${encodeURIComponent(v.uploader)}">@${esc(v.uploader)}</a> • ${esc(v.category)} • ${esc(v.visibility)} • ${esc(v.rating)}`;
+    player.src = v.url;
+    stats.textContent = `${v.views} views • ${v.likes} likes • ${v.dislikes} dislikes`;
+    setButtons(v.my_reaction);
+
+    let viewed = false;
+    player.addEventListener("play", async ()=>{
+      if(viewed) return;
+      viewed = true;
+      try{
+        await fetch(`/api/video/${videoId}/view`, {method:"POST"});
+        const v2 = await j(`/api/video/${videoId}`);
+        stats.textContent = `${v2.views} views • ${v2.likes} likes • ${v2.dislikes} dislikes`;
+        setButtons(v2.my_reaction);
+      }catch(e){}
+    });
+  }
+
+  function cCard(c){
+    return `<div style="border:1px solid var(--line);background:var(--card);border-radius:14px;padding:10px;">
+      <div class="muted">@<a href="/u/${esc(c.username)}">${esc(c.username)}</a> • ${esc(c.created_at)}</div>
+      <div style="margin-top:6px;">${esc(c.text)}</div>
+    </div>`;
+  }
+
+  async function loadComments(){
+    const arr = await j(`/api/video/${videoId}/comments`);
+    cList.innerHTML = arr.map(cCard).join("");
+  }
+
+  cSend.onclick = async ()=>{
+    cMsg.textContent = "Posting…";
+    try{
+      const fd = new FormData();
+      fd.append("text", cText.value);
+      const r = await fetch(`/api/video/${videoId}/comments`, {method:"POST", body:fd});
+      if(!r.ok) throw new Error(await r.text());
+      cText.value = "";
+      cMsg.textContent = "Posted ✅";
+      await loadComments();
+    }catch(e){
+      cMsg.textContent = "Login required or error.";
+    }
+  };
+
+  likeBtn.onclick = async ()=>{
+    msg.textContent="…";
+    try{ await postReact(1); msg.textContent="Liked ✅"; await loadVideo(); }catch(e){ msg.textContent="Error: login required"; }
+  };
+  dislikeBtn.onclick = async ()=>{
+    msg.textContent="…";
+    try{ await postReact(-1); msg.textContent="Disliked ✅"; await loadVideo(); }catch(e){ msg.textContent="Error: login required"; }
+  };
+  clearBtn.onclick = async ()=>{
+    msg.textContent="…";
+    try{ await postReact(0); msg.textContent="Cleared ✅"; await loadVideo(); }catch(e){ msg.textContent="Error: login required"; }
+  };
+
+  (async ()=>{
+    await loadVideo();
+    await loadComments();
+  })();
+</script>
+</body>
+</html>

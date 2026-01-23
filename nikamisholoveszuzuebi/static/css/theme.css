@@ -1,0 +1,147 @@
+/* ===============================
+   GeoPlay Unified Theme
+   =============================== */
+
+:root{
+  --bg:#0b0f1a;
+  --card:#141a2e;
+  --line:#242c4d;
+  --text:#eaf0ff;
+  --muted:#9aa4c7;
+  --accent:#7aa7ff;
+  --shadow:0 14px 40px rgba(0,0,0,.35);
+  --radius:16px;
+}
+
+html[data-theme="light"]{
+  --bg:#f6f7fb;
+  --card:#ffffff;
+  --line:#e4e7f0;
+  --text:#0b0f1a;
+  --muted:#4b5563;
+  --accent:#2563eb;
+  --shadow:0 16px 38px rgba(0,0,0,.1);
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto;
+}
+
+a{color:var(--text);text-decoration:none}
+.muted{color:var(--muted)}
+
+.btn{
+  background:var(--card);
+  border:1px solid var(--line);
+  color:var(--text);
+  padding:10px 14px;
+  border-radius:var(--radius);
+  cursor:pointer;
+  transition:.15s;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn.primary{border-color:var(--accent)}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:20px;
+  box-shadow:var(--shadow);
+}
+
+/* ===============================
+   CUSTOM DROPDOWN (JS BASED)
+   =============================== */
+
+.dropdown{
+  position:relative;
+  min-width:180px;
+  user-select:none;
+}
+
+.dropdown-btn{
+  background:var(--card);
+  border:1px solid var(--line);
+  padding:11px 14px;
+  border-radius:14px;
+  cursor:pointer;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.dropdown-btn span{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.dropdown-btn i{
+  border-right:2px solid var(--muted);
+  border-bottom:2px solid var(--muted);
+  width:8px;height:8px;
+  transform:rotate(45deg);
+  transition:.2s;
+}
+
+.dropdown.open .dropdown-btn i{
+  transform:rotate(-135deg);
+}
+
+.dropdown-menu{
+  position:absolute;
+  top:110%;
+  left:0;
+  right:0;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:14px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+  max-height:0;
+  opacity:0;
+  transition:max-height .25s ease, opacity .2s ease;
+  z-index:50;
+}
+
+.dropdown.open .dropdown-menu{
+  max-height:260px;
+  opacity:1;
+}
+
+.dropdown-item{
+  padding:10px 14px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  cursor:pointer;
+  transition:.15s;
+}
+
+.dropdown-item:hover{
+  background:color-mix(in srgb,var(--accent) 12%,transparent);
+}
+
+/* ===============================
+   LOGIN SECURITY UI
+   =============================== */
+
+input{
+  width:100%;
+  background:var(--bg);
+  border:1px solid var(--line);
+  color:var(--text);
+  padding:12px;
+  border-radius:14px;
+}
+
+input:focus{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 25%,transparent);
+}

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GeoPlay • Login</title>
+
+  <link rel="icon" href="/static/assets/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/assets/favicon-16.png">
+
+  <style>
+    :root{ --bg:#0b0f1a; --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.12); --text:#eaf0ff; --muted:rgba(234,240,255,.72); --accent:#7aa7ff; --shadow:0 14px 40px rgba(0,0,0,.28); }
+    [data-theme="light"]{ --bg:#f6f7fb; --card:#fff; --line:#e4e7f0; --text:#0b0f1a; --muted:#4b5563; --accent:#2563eb; --shadow:0 16px 38px rgba(0,0,0,.08); }
+    [data-theme="purple"]{ --bg:#0a0416; --card:rgba(255,255,255,.07); --line:rgba(255,255,255,.12); --text:#f2eaff; --muted:rgba(242,234,255,.72); --accent:#b37aff; }
+    [data-theme="green"]{ --bg:#06140f; --card:rgba(255,255,255,.07); --line:rgba(255,255,255,.12); --text:#eafff3; --muted:rgba(234,255,243,.72); --accent:#35d07f; }
+
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto;background:var(--bg);color:var(--text);min-height:100vh;display:grid;place-items:center;padding:18px}
+    a{color:var(--accent);text-decoration:none}
+    header{
+      position:fixed;top:0;left:0;right:0;z-index:50;
+      padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:14px;
+      border-bottom:1px solid var(--line);
+      background:color-mix(in srgb,var(--bg) 82%, transparent);
+      backdrop-filter:blur(10px);
+    }
+    .brand{display:flex;align-items:center;gap:10px}
+    .brand img{width:34px;height:34px;border-radius:999px;box-shadow:var(--shadow)}
+    .btn, select, input{
+      border:1px solid var(--line);
+      background:var(--card);
+      color:var(--text);
+      padding:11px 12px;
+      border-radius:14px;
+      transition:transform .08s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+    }
+    .btn{cursor:pointer}
+    .btn:hover{transform:translateY(-1px)}
+    .btn:active{transform:translateY(0px)}
+    input{width:100%}
+    input:focus, select:focus{
+      outline:none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+    }
+    select{appearance:none;cursor:pointer}
+    .box{
+      width:min(560px,92vw);
+      border:1px solid var(--line);
+      background:var(--card);
+      border-radius:22px;
+      padding:18px;
+      box-shadow:var(--shadow);
+      margin-top:56px;
+    }
+    .muted{color:var(--muted);font-size:13px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+    .oauth{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+    .msg{min-height:18px;margin-top:10px}
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <img src="/static/assets/logo-64.png" alt="GeoPlay">
+    <b><a href="/">GeoPlay</a></b>
+    <span class="muted" id="me">…</span>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <a class="btn" href="/">Home</a>
+    <select id="theme">
+      <option value="dark">Dark</option>
+      <option value="light">Light</option>
+      <option value="purple">Purple</option>
+      <option value="green">Green</option>
+    </select>
+  </div>
+</header>
+
+<div class="box">
+  <h2 style="margin:0 0 6px;">Login / Register</h2>
+  <div class="muted">Usernames: <b>a-z 0-9 _</b>. Password min: <b>6</b>.</div>
+
+  <input id="username" placeholder="Username" autocomplete="username"/>
+  <input id="display" placeholder="Display name (optional)" autocomplete="name"/>
+  <input id="password" type="password" placeholder="Password" autocomplete="current-password"/>
+
+  <div class="row">
+    <button class="btn" id="login">Login</button>
+    <button class="btn" id="register">Register</button>
+  </div>
+
+  <div class="oauth">
+    <button class="btn" onclick="location.href='/auth/google/login'">Continue with Google</button>
+    <button class="btn" onclick="location.href='/auth/github/login'">Continue with GitHub</button>
+    <button class="btn" onclick="location.href='/auth/facebook/login'">Continue with Facebook</button>
+    <button class="btn" onclick="alert('X OAuth needs provider keys + extra setup.');">Continue with X</button>
+  </div>
+
+  <div class="msg muted" id="msg"></div>
+  <div class="muted" style="margin-top:10px">
+    After login, you can upload videos on <a href="/upload">Upload</a>.
+  </div>
+</div>
+
+<script>
+  const themeSel = document.getElementById("theme");
+  function setTheme(t){
+    document.documentElement.dataset.theme = (t === "dark" ? "" : t);
+    localStorage.setItem("theme", t);
+  }
+  setTheme(localStorage.getItem("theme") || "dark");
+  themeSel.value = localStorage.getItem("theme") || "dark";
+  themeSel.onchange = ()=> setTheme(themeSel.value);
+
+  const me = document.getElementById("me");
+  async function j(url){ const r=await fetch(url); return r.json(); }
+  (async ()=> {
+    const m = await j("/api/me");
+    me.textContent = m.logged_in ? ("@"+m.username) : "guest";
+  })();
+
+  const u = document.getElementById("username");
+  const d = document.getElementById("display");
+  const p = document.getElementById("password");
+  const msg = document.getElementById("msg");
+
+  async function postForm(url, data){
+    const fd = new FormData();
+    Object.entries(data).forEach(([k,v])=>fd.append(k,v));
+    const r = await fetch(url, {method:"POST", body: fd});
+    const t = await r.text();
+    let jdata; try{ jdata = JSON.parse(t);}catch{ jdata = {raw:t}; }
+    if(!r.ok) throw new Error(jdata.detail || t);
+    return jdata;
+  }
+
+  document.getElementById("register").onclick = async ()=>{
+    msg.textContent = "Registering…";
+    try{
+      await postForm("/api/register", {
+        username: u.value.trim(),
+        password: p.value,
+        display_name: d.value.trim()
+      });
+      msg.textContent = "Registered ✅ Now press Login.";
+    }catch(e){
+      msg.textContent = "Error: " + e.message;
+    }
+  };
+
+  document.getElementById("login").onclick = async ()=>{
+    msg.textContent = "Logging in…";
+    try{
+      await postForm("/api/login", {username: u.value.trim(), password: p.value});
+      msg.textContent = "Success ✅ Redirecting…";
+      setTimeout(()=>location.href="/", 400);
+    }catch(e){
+      msg.textContent = "Error: " + e.message;
+    }
+  };
+</script>
+</body>
+</html>

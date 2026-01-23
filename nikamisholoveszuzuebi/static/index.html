@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <title>GeoPlay</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- favicon -->
+  <link rel="icon" href="/static/assets/favicon.ico">
+
+  <style>
+    :root{
+      --bg:#0b0f1a;
+      --card:rgba(255,255,255,.06);
+      --line:rgba(255,255,255,.12);
+      --text:#eaf0ff;
+      --muted:rgba(234,240,255,.72);
+      --accent:#7aa7ff;
+      --shadow:0 14px 40px rgba(0,0,0,.28);
+    }
+
+    html[data-theme="light"]{
+      --bg:#f6f7fb;
+      --card:#fff;
+      --line:#e4e7f0;
+      --text:#0b0f1a;
+      --muted:#4b5563;
+      --accent:#2563eb;
+      --shadow:0 16px 38px rgba(0,0,0,.08);
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    a{color:var(--text);text-decoration:none}
+    .muted{color:var(--muted)}
+
+    /* header */
+    header{
+      position:sticky;top:0;z-index:50;
+      display:flex;justify-content:space-between;align-items:center;
+      padding:12px 16px;
+      background:color-mix(in srgb,var(--bg) 85%,transparent);
+      backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+
+    .brand{display:flex;align-items:center;gap:10px}
+    .brand img{width:34px;height:34px;border-radius:50%}
+    .btn{
+      background:var(--card);
+      border:1px solid var(--line);
+      color:var(--text);
+      padding:10px 14px;
+      border-radius:14px;
+      cursor:pointer;
+      transition:.15s;
+    }
+    .btn:hover{transform:translateY(-1px)}
+
+    /* layout */
+    .wrap{max-width:1200px;margin:0 auto;padding:16px}
+
+    .toolbar{
+      display:flex;gap:12px;flex-wrap:wrap;
+      padding:14px;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+    }
+
+    /* ===== custom select wrapper ===== */
+    .select-wrap{
+      position:relative;
+      min-width:180px;
+    }
+
+    .select-wrap select{
+      width:100%;
+      appearance:none;
+      background:var(--card);
+      color:var(--text);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:11px 40px 11px 12px;
+      cursor:pointer;
+      color-scheme:dark;
+    }
+
+    html[data-theme="light"] .select-wrap select{
+      color-scheme:light;
+    }
+
+    .select-wrap::after{
+      content:"";
+      position:absolute;
+      right:14px;
+      top:50%;
+      width:8px;height:8px;
+      border-right:2px solid var(--muted);
+      border-bottom:2px solid var(--muted);
+      transform:translateY(-60%) rotate(45deg);
+      pointer-events:none;
+    }
+
+    option{
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    /* grid */
+    .main{
+      display:grid;
+      grid-template-columns:1.4fr .6fr;
+      gap:16px;
+      margin-top:16px;
+    }
+
+    @media(max-width:900px){
+      .main{grid-template-columns:1fr}
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+      gap:14px;
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:20px;
+      overflow:hidden;
+      box-shadow:var(--shadow);
+    }
+
+    .card video{
+      width:100%;
+      height:170px;
+      object-fit:cover;
+      background:black;
+      pointer-events:none;
+    }
+
+    .meta{padding:12px}
+    .title{font-weight:700}
+
+    /* creators */
+    .panel{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:20px;
+      padding:14px;
+      box-shadow:var(--shadow);
+    }
+
+    .creator{
+      display:flex;justify-content:space-between;align-items:center;
+      padding:10px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      margin-top:10px;
+    }
+
+    footer{
+      margin-top:30px;
+      padding:20px;
+      text-align:center;
+      border-top:1px solid var(--line);
+      color:var(--muted);
+    }
+  </style>
+</head>
+<link rel="stylesheet" href="/static/css/theme.css">
+<script src="/static/js/dropdown.js"></script>
+
+<body>
+
+<header>
+  <div class="brand">
+    <img src="/static/assets/logo-64.png">
+    <b>GeoPlay</b>
+    <span class="muted" id="me">guest</span>
+  </div>
+  <div style="display:flex;gap:10px">
+    <a class="btn" href="/">Home</a>
+    <a class="btn" href="/upload">Upload</a>
+    <a class="btn" href="/login">Login</a>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    
+    <div class="select-wrap">
+      <select id="sort">
+        <option value="trending">Trending</option>
+        <option value="most_liked">Most liked</option>
+        <option value="most_viewed">Most viewed</option>
+        <option value="least_liked">Least liked</option>
+        <option value="least_viewed">Least viewed</option>
+      </select>
+    </div>
+
+    <div class="select-wrap">
+      <select id="category">
+        <option value="">All categories</option>
+      </select>
+    </div>
+
+    <div class="select-wrap">
+      <select id="theme">
+        <option value="dark">Dark</option>
+        <option value="light">Light</option>
+      </select>
+    </div>
+
+    <button class="btn" id="refresh">Refresh</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="main">
+
+    <div>
+      <div class="grid" id="videos"></div>
+      <div class="muted" id="empty" style="display:none;margin-top:10px">No videos yet.</div>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin-top:0">Top creators</h3>
+      <div id="creators"></div>
+    </div>
+
+  </div>
+
+  <footer>
+    Created by <b>ZuZinc</b> ·
+    <a href="mailto:contact@geoplay.tv" class="btn">Contact</a>
+  </footer>
+</div>
+
+<script>
+  const videosEl = document.getElementById("videos");
+  const emptyEl = document.getElementById("empty");
+  const sort = document.getElementById("sort");
+  const category = document.getElementById("category");
+  const themeSel = document.getElementById("theme");
+
+  function setTheme(t){
+    document.documentElement.dataset.theme = t;
+    localStorage.setItem("theme",t);
+  }
+  setTheme(localStorage.getItem("theme")||"dark");
+  themeSel.value = localStorage.getItem("theme")||"dark";
+  themeSel.onchange=()=>setTheme(themeSel.value);
+
+  async function j(url){
+    const r=await fetch(url);
+    return r.json();
+  }
+
+  function videoCard(v){
+    return `
+      <div class="card">
+        <a href="/v/${v.id}">
+          <video src="${v.url}" muted preload="metadata"></video>
+        </a>
+        <div class="meta">
+          <div class="title">${v.title}</div>
+          <div class="muted">${v.views} views · ${v.likes} likes</div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function loadVideos(){
+    const qs=new URLSearchParams({
+      sort:sort.value,
+      category:category.value
+    });
+    const vids=await j("/api/videos?"+qs);
+    videosEl.innerHTML="";
+    if(!vids.length){emptyEl.style.display="block";return;}
+    emptyEl.style.display="none";
+    vids.forEach(v=>videosEl.insertAdjacentHTML("beforeend",videoCard(v)));
+  }
+
+  async function loadCategories(){
+    const c=await j("/api/categories");
+    category.innerHTML='<option value="">All categories</option>';
+    c.categories.forEach(x=>{
+      category.insertAdjacentHTML("beforeend",`<option>${x}</option>`);
+    });
+  }
+
+  async function loadCreators(){
+    const c=await j("/api/creators/top");
+    document.getElementById("creators").innerHTML=
+      c.map(u=>`
+        <div class="creator">
+          <b>@${u.username}</b>
+          <span class="muted">${u.followers} followers</span>
+        </div>
+      `).join("");
+  }
+
+  sort.onchange=loadVideos;
+  category.onchange=loadVideos;
+  document.getElementById("refresh").onclick=loadVideos;
+
+  loadCategories();
+  loadVideos();
+  loadCreators();
+</script>
+
+</body>
+</html>

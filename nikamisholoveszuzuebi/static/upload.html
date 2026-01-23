@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GeoPlay • Upload</title>
+
+  <link rel="icon" href="/static/assets/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/assets/favicon-16.png">
+
+  <style>
+    :root{ --bg:#0b0f1a; --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.12); --text:#eaf0ff; --muted:rgba(234,240,255,.72); --accent:#7aa7ff; --shadow:0 14px 40px rgba(0,0,0,.28); }
+    [data-theme="light"]{ --bg:#f6f7fb; --card:#fff; --line:#e4e7f0; --text:#0b0f1a; --muted:#4b5563; --accent:#2563eb; --shadow:0 16px 38px rgba(0,0,0,.08); }
+    [data-theme="purple"]{ --bg:#0a0416; --card:rgba(255,255,255,.07); --line:rgba(255,255,255,.12); --text:#f2eaff; --muted:rgba(242,234,255,.72); --accent:#b37aff; }
+    [data-theme="green"]{ --bg:#06140f; --card:rgba(255,255,255,.07); --line:rgba(255,255,255,.12); --text:#eafff3; --muted:rgba(234,255,243,.72); --accent:#35d07f; }
+
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto;background:var(--bg);color:var(--text);min-height:100vh}
+    a{color:var(--accent);text-decoration:none}
+    header{
+      position:sticky;top:0;z-index:50;
+      padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:14px;
+      border-bottom:1px solid var(--line);
+      background:color-mix(in srgb,var(--bg) 82%, transparent);
+      backdrop-filter:blur(10px);
+    }
+    .brand{display:flex;align-items:center;gap:10px}
+    .brand img{width:34px;height:34px;border-radius:999px;box-shadow:var(--shadow)}
+    .wrap{max-width:900px;margin:0 auto;padding:16px}
+    .card{
+      border:1px solid var(--line);
+      background:var(--card);
+      border-radius:22px;
+      padding:18px;
+      box-shadow:var(--shadow);
+    }
+    .btn, select, input{
+      border:1px solid var(--line);
+      background:var(--card);
+      color:var(--text);
+      padding:11px 12px;
+      border-radius:14px;
+      transition:transform .08s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+    }
+    .btn{cursor:pointer}
+    .btn:hover{transform:translateY(-1px)}
+    .btn:active{transform:translateY(0px)}
+    input, select{width:100%}
+    input:focus, select:focus{
+      outline:none;border-color:var(--accent);
+      box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+    }
+    select{appearance:none;cursor:pointer}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .muted{color:var(--muted);font-size:13px}
+    .progress{margin-top:12px;height:12px;border-radius:999px;border:1px solid var(--line);overflow:hidden;display:none}
+    .bar{height:100%;width:0%;background:var(--accent);opacity:.6}
+    .pct{margin-top:8px;color:var(--accent);font-weight:800;display:none}
+    footer{margin-top:26px;padding:18px;text-align:center;color:var(--muted);border-top:1px solid var(--line)}
+    footer .btn{display:inline-block;margin-left:10px;width:auto}
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <img src="/static/assets/logo-64.png" alt="GeoPlay">
+    <b><a href="/">GeoPlay</a></b>
+    <span class="muted" id="me">…</span>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <a class="btn" href="/">Home</a>
+    <a class="btn" href="/login">Login</a>
+    <select id="theme" style="width:auto">
+      <option value="dark">Dark</option>
+      <option value="light">Light</option>
+      <option value="purple">Purple</option>
+      <option value="green">Green</option>
+    </select>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2 style="margin:0 0 6px;">Upload video</h2>
+    <div class="muted">Public = everyone • Friends = mutual followers • Private = only you</div>
+    <div class="muted" id="status" style="margin-top:10px;">Checking login…</div>
+
+    <input id="title" placeholder="Title" style="margin-top:14px"/>
+    <input id="category" placeholder="Category (e.g. Music, Gaming)" style="margin-top:12px"/>
+
+    <div class="row" style="margin-top:12px;">
+      <select id="visibility">
+        <option value="public">Public (global)</option>
+        <option value="friends">Friends only</option>
+        <option value="private">Private (only me)</option>
+      </select>
+      <select id="rating">
+        <option value="clean">Clean</option>
+        <option value="mature">Mature</option>
+      </select>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <select id="censor">
+        <option value="off">Censor OFF</option>
+        <option value="on">Censor ON (mask bad words in title)</option>
+      </select>
+      <input id="file" type="file" accept="video/mp4,video/webm,video/ogg"/>
+    </div>
+
+    <button class="btn" id="btn" style="margin-top:14px;width:100%;">Upload</button>
+
+    <div class="progress" id="progress"><div class="bar" id="bar"></div></div>
+    <div class="pct" id="pct">0%</div>
+    <div class="muted" id="msg" style="margin-top:10px;min-height:18px;"></div>
+  </div>
+
+  <footer>
+    Created by <b>ZuZinc</b>
+    <a class="btn" href="mailto:contact@geoplay.tv">Contact</a>
+  </footer>
+</div>
+
+<script>
+  const themeSel = document.getElementById("theme");
+  function setTheme(t){
+    document.documentElement.dataset.theme = (t === "dark" ? "" : t);
+    localStorage.setItem("theme", t);
+  }
+  setTheme(localStorage.getItem("theme") || "dark");
+  themeSel.value = localStorage.getItem("theme") || "dark";
+  themeSel.onchange = ()=> setTheme(themeSel.value);
+
+  const status = document.getElementById("status");
+  const msg = document.getElementById("msg");
+  const btn = document.getElementById("btn");
+  const me = document.getElementById("me");
+
+  const title = document.getElementById("title");
+  const category = document.getElementById("category");
+  const visibility = document.getElementById("visibility");
+  const rating = document.getElementById("rating");
+  const censor = document.getElementById("censor");
+  const file = document.getElementById("file");
+
+  const progress = document.getElementById("progress");
+  const bar = document.getElementById("bar");
+  const pct = document.getElementById("pct");
+
+  async function j(url){ const r=await fetch(url); return r.json(); }
+
+  async function checkMe(){
+    const m = await j("/api/me");
+    if(!m.logged_in){
+      status.textContent = "Not logged in. Go to Login first.";
+      me.textContent = "guest";
+      btn.disabled = true;
+      btn.style.opacity = .6;
+    } else {
+      status.innerHTML = `Logged in as @<a href="/u/${m.username}">${m.username}</a>`;
+      me.innerHTML = `@<a href="/u/${m.username}">${m.username}</a>`;
+      btn.disabled = false;
+      btn.style.opacity = 1;
+    }
+  }
+
+  btn.onclick = ()=>{
+    const f = file.files && file.files[0];
+    if(!f){ msg.textContent="Choose a video file."; return; }
+
+    const fd = new FormData();
+    fd.append("file", f);
+    fd.append("title", title.value.trim() || f.name);
+    fd.append("category", category.value.trim() || "Uncategorized");
+    fd.append("visibility", visibility.value);
+    fd.append("rating", rating.value);
+    fd.append("censor", censor.value);
+
+    msg.textContent="Uploading…";
+    progress.style.display="block";
+    pct.style.display="block";
+    bar.style.width="0%";
+    pct.textContent="0%";
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST","/api/upload",true);
+
+    xhr.upload.onprogress = (e)=>{
+      if(e.lengthComputable){
+        const p = Math.round((e.loaded/e.total)*100);
+        bar.style.width = p + "%";
+        pct.textContent = p + "%";
+      }
+    };
+
+    xhr.onload = ()=>{
+      if(xhr.status>=200 && xhr.status<300){
+        pct.textContent="100%";
+        msg.textContent="Uploaded ✅ Redirecting to Home…";
+        setTimeout(()=>location.href="/", 700);
+      } else {
+        msg.textContent="Upload failed: " + xhr.responseText;
+      }
+      setTimeout(()=>{ progress.style.display="none"; }, 1200);
+    };
+
+    xhr.onerror = ()=>{
+      msg.textContent="Upload error (server unreachable).";
+      progress.style.display="none";
+    };
+
+    xhr.send(fd);
+  };
+
+  checkMe();
+</script>
+</body>
+</html>
