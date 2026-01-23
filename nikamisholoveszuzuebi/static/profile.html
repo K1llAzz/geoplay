@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GeoPlay — Profile</title>
+  <style>
+    :root{ --bg:#0b0f1a; --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.12); --text:#eaf0ff; --muted:rgba(234,240,255,.72); --accent:#7aa7ff; }
+    [data-theme="light"]{ --bg:#f6f7fb; --card:#fff; --line:#e4e7f0; --text:#0b0f1a; --muted:#4b5563; --accent:#2563eb; }
+    [data-theme="purple"]{ --bg:#0a0416; --card:rgba(255,255,255,.07); --line:rgba(255,255,255,.12); --text:#f2eaff; --muted:rgba(242,234,255,.72); --accent:#b37aff; }
+    [data-theme="green"]{ --bg:#06140f; --card:rgba(255,255,255,.07); --line:rgba(255,255,255,.12); --text:#eafff3; --muted:rgba(234,255,243,.72); --accent:#35d07f; }
+    body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
+    a{color:var(--text);text-decoration:none}
+    header{position:sticky;top:0;backdrop-filter:blur(10px);background:color-mix(in srgb,var(--bg) 80%, transparent);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .btn{border:1px solid var(--line);background:var(--card);color:var(--text);padding:9px 12px;border-radius:12px;cursor:pointer}
+    select{border:1px solid var(--line);background:var(--card);color:var(--text);padding:9px 12px;border-radius:12px}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .card{border:1px solid var(--line);background:var(--card);border-radius:18px;padding:14px}
+    .muted{color:var(--muted)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:14px}
+    .v{border:1px solid var(--line);background:var(--card);border-radius:18px;overflow:hidden}
+    video{width:100%;height:180px;object-fit:cover;background:#000}
+    .meta{padding:12px}
+    .title{font-weight:800}
+  </style>
+</head>
+<body>
+<header>
+  <div style="display:flex;gap:10px;align-items:center">
+    <a class="btn" href="/">Home</a>
+    <a class="btn" href="/upload">Upload</a>
+    <a class="btn" href="/login">Login</a>
+    <span class="muted" id="me">…</span>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <select id="theme">
+      <option value="dark">Dark</option>
+      <option value="light">Light</option>
+      <option value="purple">Purple</option>
+      <option value="green">Green</option>
+    </select>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2 style="margin:0" id="title">Profile</h2>
+    <div class="muted" id="sub" style="margin-top:6px;"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+      <button class="btn" id="followBtn" style="display:none;">Follow</button>
+      <button class="btn" id="unfollowBtn" style="display:none;">Unfollow</button>
+    </div>
+  </div>
+
+  <h3 style="margin:16px 0 8px;">Videos</h3>
+  <div class="grid" id="grid"></div>
+  <div class="muted" id="empty" style="display:none;margin-top:10px">No visible videos.</div>
+</div>
+
+<script>
+  const themeSel = document.getElementById("theme");
+  function setTheme(t){
+    document.documentElement.dataset.theme = (t === "dark" ? "" : t);
+    localStorage.setItem("theme", t);
+  }
+  setTheme(localStorage.getItem("theme") || "dark");
+  themeSel.value = localStorage.getItem("theme") || "dark";
+  themeSel.onchange = ()=> setTheme(themeSel.value);
+
+  const meEl = document.getElementById("me");
+  async function j(url){ const r=await fetch(url); return r.json(); }
+  (async ()=> {
+    const m = await j("/api/me");
+    meEl.textContent = m.logged_in ? ("@"+m.username) : "guest";
+  })();
+
+  const pathParts = location.pathname.split("/");
+  const username = decodeURIComponent(pathParts[pathParts.length-1] || "");
+
+  const title = document.getElementById("title");
+  const sub = document.getElementById("sub");
+  const followBtn = document.getElementById("followBtn");
+  const unfollowBtn = document.getElementById("unfollowBtn");
+
+  const grid = document.getElementById("grid");
+  const empty = document.getElementById("empty");
+
+  function esc(s){return String(s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));}
+
+  function videoCard(v){
+    return `
+      <div class="v">
+        <a href="/v/${v.id}"><video src="${esc(v.url)}" muted preload="metadata"></video></a>
+        <div class="meta">
+          <div class="title"><a href="/v/${v.id}">${esc(v.title)}</a></div>
+          <div class="muted">${v.views} views • 👍 ${v.likes} 👎 ${v.dislikes}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function loadProfile(){
+    const m = await j("/api/me");
+    const u = await j("/api/user/" + encodeURIComponent(username));
+
+    title.textContent = u.display_name + " (@" + u.username + ")";
+    sub.textContent = `${u.followers} followers • ${u.following} following • joined ${u.created_at}`;
+
+    if(m.logged_in && m.username !== u.username){
+      if(u.viewer_is_following){
+        followBtn.style.display="none";
+        unfollowBtn.style.display="inline-block";
+      } else {
+        followBtn.style.display="inline-block";
+        unfollowBtn.style.display="none";
+      }
+    } else {
+      followBtn.style.display="none";
+      unfollowBtn.style.display="none";
+    }
+
+    followBtn.onclick = async ()=>{
+      await fetch("/api/follow/" + encodeURIComponent(username), {method:"POST"});
+      await loadProfile();
+      await loadVideos();
+    };
+    unfollowBtn.onclick = async ()=>{
+      await fetch("/api/unfollow/" + encodeURIComponent(username), {method:"POST"});
+      await loadProfile();
+      await loadVideos();
+    };
+  }
+
+  async function loadVideos(){
+    // We don’t have a dedicated “videos by user” endpoint,
+    // so we fetch /api/videos and filter on frontend.
+    const vids = await j("/api/videos?sort=trending");
+    const mine = (vids || []).filter(v => v.uploader === username);
+
+    grid.innerHTML="";
+    if(!mine.length){ empty.style.display="block"; return; }
+    empty.style.display="none";
+
+    mine.forEach(v=>{
+      const d=document.createElement("div");
+      d.innerHTML = videoCard(v);
+      grid.appendChild(d.firstElementChild);
+    });
+  }
+
+  (async ()=>{
+    await loadProfile();
+    await loadVideos();
+  })();
+</script>
+</body>
+</html>
